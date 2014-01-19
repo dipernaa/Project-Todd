@@ -9,6 +9,7 @@ import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+
 import javax.swing.JPanel;
 
 @SuppressWarnings("serial")
@@ -20,14 +21,16 @@ public class Panel extends JPanel implements Runnable {
 	private Floor floor2;
 	private Floor floor3;
 	private Rectangle[] star;
+	int[] starX;
+	int[] starY;
 	private List<Floor> floors = new ArrayList<Floor>();
 
-	protected HorizontalMovingBehavior noMoveBehavior = new NoMoveBehavior();
-	protected HorizontalMovingBehavior moveLeftBehavior = new MoveLeftBehavior();
-	protected HorizontalMovingBehavior moveRightBehavior = new MoveRightBehavior();
-	protected VerticalMovingBehavior onGroundBehavior = new OnGroundBehavior();
-	protected VerticalMovingBehavior jumpingBehavior = new JumpingBehavior();
-	protected VerticalMovingBehavior fallingBehavior = new FallingBehavior();
+	protected NoMoveBehavior noMoveBehavior = new NoMoveBehavior();
+	protected MoveLeftBehavior moveLeftBehavior = new MoveLeftBehavior();
+	protected MoveRightBehavior moveRightBehavior = new MoveRightBehavior();
+	protected OnGroundBehavior onGroundBehavior = new OnGroundBehavior();
+	protected JumpingBehavior jumpingBehavior = new JumpingBehavior();
+	protected FallingBehavior fallingBehavior = new FallingBehavior();
 
 	private static final int PLAYER_HEIGHT = 40;
 	private static final int PLAYER_WIDTH = 20;
@@ -62,10 +65,14 @@ public class Panel extends JPanel implements Runnable {
 		floors.add(floor3);
 
 		star = new Rectangle[500];
+		starX = new int[500];
+		starY = new int[500];
 		Random rGen = new Random();
 		for(int i=0; i < star.length; i++) {
 			currentStarSize = rGen.nextInt(5);
-			star[i] = new Rectangle(rGen.nextInt(gameFrame.WIDTH)*2 - gameFrame.WIDTH/2, rGen.nextInt(gameFrame.HEIGHT)*2 - gameFrame.HEIGHT/2, currentStarSize, currentStarSize);
+			starX[i] = rGen.nextInt(gameFrame.WIDTH)*2 - gameFrame.WIDTH/2;
+			starY[i] = rGen.nextInt(gameFrame.HEIGHT)*2 - gameFrame.HEIGHT/2;
+			star[i] = new Rectangle(starX[i], starY[i], currentStarSize, currentStarSize);
 		}
 
 		objectsCreated = true;
@@ -74,9 +81,9 @@ public class Panel extends JPanel implements Runnable {
 
 	public void updateWorld() {
 		int offset = player.x - gameFrame.WIDTH/2 - floor.x;
-		floor.setLocation(player.x - gameFrame.WIDTH/2, gameFrame.HEIGHT - FLOOR_HEIGHT);
+		//floor.setLocation(player.x - gameFrame.WIDTH/2, gameFrame.HEIGHT - FLOOR_HEIGHT);
 		for(int i=0; i < star.length; i++) {
-			star[i].setLocation((int)(star[i].getX() + offset), (int)star[i].getY());
+			star[i].setLocation(starX[i] + player.x / 4, starY[i] + player.y / 4);
 		}
 	}
 
@@ -86,6 +93,9 @@ public class Panel extends JPanel implements Runnable {
 		if(objectsCreated == true) {
 			updateWorld();
 			graphic.setColor(Color.WHITE);
+			for(int i=0; i < star.length; i++) {
+				graphic.fill3DRect(star[i].x - xs, star[i].y - ys, star[i].width, star[i].height, false);
+			}
 			graphic.fillRect(player.x - xs, player.y - ys, player.width, player.height);
 			graphic.setColor(Color.CYAN);
 			if(movingLeft) {
@@ -100,9 +110,6 @@ public class Panel extends JPanel implements Runnable {
 			graphic.setColor(Color.WHITE);
 			graphic.fillRect(floor3.x - xs, floor3.y - ys, floor3.width, floor3.height);
 
-			for(int i=0; i < star.length; i++) {
-				graphic.fill3DRect(star[i].x - xs, star[i].y - ys, star[i].width, star[i].height, false);
-			}
 
 			if(inGame == false) {
 				graphic.setColor(Color.RED);
@@ -117,6 +124,8 @@ public class Panel extends JPanel implements Runnable {
 			if(inGame == true) {
 				Point bottomLeftPoint = new Point(player.x + 1, player.y + player.height);
 				Point bottomRightPoint = new Point(player.x + player.width - 1, player.y + player.height);
+				Point tooLowLeftPoint = new Point(player.x + 1, player.y + player.height - 1);
+				Point tooLowRightPoint = new Point(player.x + player.width - 1, player.y + player.height - 1);
 				Point leftBottomMovingPoint = new Point(player.x, player.y + player.height - 1);
 				Point rightBottomMovingPoint = new Point(player.x + player.width, player.y + player.height - 1);
 				Point leftTopMovingPoint = new Point(player.x, player.y + 1);
@@ -129,6 +138,10 @@ public class Panel extends JPanel implements Runnable {
 					for(Floor floorChecker : floors) {
 						if(!floorChecker.contains(bottomLeftPoint) || !floorChecker.contains(bottomRightPoint)) {
 							player.setVerticalMovingBehavior(fallingBehavior);
+						}
+						if(floorChecker.contains(tooLowLeftPoint) || floorChecker.contains(tooLowRightPoint)) {
+							player.y -= 1;
+							ys -= 1;
 						}
 					}
 				}
@@ -149,18 +162,19 @@ public class Panel extends JPanel implements Runnable {
 
 				//moving left
 				for(Floor floorChecker : floors) {
-					if(floorChecker.contains(leftBottomMovingPoint) || floorChecker.contains(leftTopMovingPoint)) {
+					if((floorChecker.contains(leftBottomMovingPoint) || floorChecker.contains(leftTopMovingPoint)) && player.getHorizontalMovingBehavior().equals(moveLeftBehavior)) {
 						player.setHorizontalMovingBehavior(noMoveBehavior);
 					}
 				}
 				
 				//moving right
 				for(Floor floorChecker : floors) {
-					if(floorChecker.contains(rightBottomMovingPoint) || floorChecker.contains(rightTopMovingPoint)) {
+					if((floorChecker.contains(rightBottomMovingPoint) || floorChecker.contains(rightTopMovingPoint)) && player.getHorizontalMovingBehavior().equals(moveRightBehavior)) {
 						player.setHorizontalMovingBehavior(noMoveBehavior);
 					}
 				}
-
+				if (player.verticalMovingBehavior instanceof JumpingBehavior && player.verticalMovingBehavior.jumpingFrame > player.verticalMovingBehavior.jumpingLength)
+					player.setVerticalMovingBehavior(fallingBehavior);
 				player.move(this, player);
 				fpsSetter();
 				repaint();
@@ -168,10 +182,9 @@ public class Panel extends JPanel implements Runnable {
 		}
 	}
 
-	@SuppressWarnings("static-access")
 	public void fpsSetter() {
 		try {
-			game.sleep(FPS/1000);
+			Thread.sleep(FPS/1000);
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
@@ -188,7 +201,8 @@ public class Panel extends JPanel implements Runnable {
 		@Override
 		public void keyPressed(KeyEvent e) {
 			if(e.getKeyCode() == KEY_JUMP) {
-				if(!player.getVerticalMovingBehavior().equals(fallingBehavior)) {
+				if(!player.getVerticalMovingBehavior().equals(fallingBehavior) && !player.getVerticalMovingBehavior().equals(jumpingBehavior)) {
+					jumpingBehavior.jump();
 					player.setVerticalMovingBehavior(jumpingBehavior);
 				}
 			}
