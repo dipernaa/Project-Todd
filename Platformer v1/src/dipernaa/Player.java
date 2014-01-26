@@ -19,6 +19,10 @@ public class Player extends Rectangle {
 	}
 
 	public void setVerticalMovingBehavior(VerticalMovingBehavior verticalMovingBehavior) {
+		if (!(this.verticalMovingBehavior instanceof JumpingBehavior))
+		if (verticalMovingBehavior.fallingSpeed > 0)
+			verticalMovingBehavior.fallingSpeed = 0;
+		verticalMovingBehavior.jumpingFrame = 0;
 		this.verticalMovingBehavior = verticalMovingBehavior;
 	}
 	
